@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQL IN 条件格式化</title>
+<style>
+  :root {
+    --bg: #f5f5f5;
+    --card-bg: #fff;
+    --text: #1a1a1a;
+    --text-secondary: #666;
+    --border: #ddd;
+    --primary: #1565c0;
+    --primary-hover: #0d47a1;
+    --success: #2e7d32;
+    --success-bg: #e8f5e9;
+  }
+  @@media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121212;
+      --card-bg: #1e1e1e;
+      --text: #e0e0e0;
+      --text-secondary: #999;
+      --border: #333;
+      --primary: #42a5f5;
+      --primary-hover: #64b5f6;
+      --success: #66bb6a;
+      --success-bg: #1b3d1b;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+         background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  header { background: #1a237e; color: #fff; padding: 16px 24px;
+            display: flex; justify-content: space-between; align-items: center; }
+  header h1 { font-size: 20px; font-weight: 600; }
+  header span { font-size: 13px; opacity: 0.8; }
+  @@media (prefers-color-scheme: dark) {
+    header { background: #0d1b6b; }
+  }
+
+  .container { max-width: 800px; margin: 0 auto; padding: 16px; }
+
+  .card { background: var(--card-bg); border: 1px solid var(--border);
+           border-radius: 8px; margin-bottom: 16px; overflow: hidden; }
+  .card-title { padding: 12px 16px; font-size: 14px; font-weight: 600;
+                 border-bottom: 1px solid var(--border); background: #fafafa; }
+  @@media (prefers-color-scheme: dark) {
+    .card-title { background: #2a2a2a; }
+  }
+  .card-body { padding: 12px 16px; }
+
+  textarea { width: 100%; min-height: 160px; padding: 12px; border: 1px solid var(--border);
+              border-radius: 6px; font-family: "JetBrains Mono", "Consolas", monospace;
+              font-size: 13px; line-height: 1.6; resize: vertical; background: var(--card-bg);
+              color: var(--text); outline: none; }
+  textarea:focus { border-color: var(--primary); }
+
+  .options { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+  .option-group { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .option-group label { display: flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
+  .option-group input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+
+  .radio-group { display: flex; gap: 16px; }
+  .radio-group label { display: flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
+  .radio-group input[type="radio"] { cursor: pointer; }
+
+  .output-area { position: relative; }
+  .output-area textarea { background: #f8f9fa; min-height: 80px; cursor: pointer; }
+  @@media (prefers-color-scheme: dark) {
+    .output-area textarea { background: #2a2a2a; }
+  }
+
+  .btn-row { display: flex; gap: 8px; }
+  .btn { padding: 8px 20px; border: none; border-radius: 6px; font-size: 14px;
+          font-weight: 500; cursor: pointer; transition: all .15s; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-clear { background: var(--card-bg); color: var(--text); border: 1px solid var(--border); }
+  .btn-clear:hover { background: #ffebee; }
+
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            background: var(--success); color: #fff; padding: 10px 24px; border-radius: 8px;
+            font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+  .toast.show { opacity: 1; }
+
+  .count-info { font-size: 12px; color: var(--text-secondary); margin-top: 8px; }
+  .count-info span { font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>SQL IN 条件格式化</h1>
+  <span>粘贴多行数据，快速转成逗号分隔的 IN 条件</span>
+</header>
+
+<div class="container">
+  <div class="card">
+    <div class="card-title">粘贴数据</div>
+    <div class="card-body">
+      <textarea id="inputArea" placeholder="粘贴多行数据，例如：&#10;&#10;26N-ODM-0004&#10;26N-ODM-0005&#10;26N-ODM-0006&#10;26N-ODM-0007"></textarea>
+      <div class="count-info" id="countInfo">共 <span>0</span> 项</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">选项</div>
+    <div class="card-body options">
+      <div class="option-group">
+        <label><input type="checkbox" id="chkQuote" checked> 加引号</label>
+        <label><input type="checkbox" id="chkDedup"> 去重</label>
+        <label><input type="checkbox" id="chkSort"> 排序</label>
+      </div>
+      <div class="radio-group">
+        <label><input type="radio" name="outputMode" value="multi" checked> 多行</label>
+        <label><input type="radio" name="outputMode" value="single"> 压缩一行</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">结果</div>
+    <div class="card-body">
+      <div class="btn-row">
+        <button class="btn btn-primary" id="copyBtn">📋 复制结果</button>
+        <button class="btn btn-clear" id="clearBtn">清空</button>
+      </div>
+      <div class="output-area" style="margin-top:10px">
+        <textarea id="outputArea" readonly placeholder="结果将在此显示..." onclick="this.select()"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">已复制到剪贴板</div>
+
+<script>
+const inputArea = document.getElementById("inputArea");
+const outputArea = document.getElementById("outputArea");
+const chkQuote = document.getElementById("chkQuote");
+const chkDedup = document.getElementById("chkDedup");
+const chkSort = document.getElementById("chkSort");
+const copyBtn = document.getElementById("copyBtn");
+const clearBtn = document.getElementById("clearBtn");
+const countInfo = document.getElementById("countInfo");
+const toast = document.getElementById("toast");
+
+function format() {
+  const raw = inputArea.value;
+  const lines = raw.split("\n").map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0; });
+
+  countInfo.innerHTML = "共 <span>" + lines.length + "</span> 项" +
+    (chkDedup.checked ? " → 去重后 <span>" + new Set(lines).size + "</span> 项" : "");
+
+  if (lines.length === 0) {
+    outputArea.value = "";
+    return;
+  }
+
+  var items = lines;
+
+  if (chkDedup.checked) {
+    items = [...new Set(items)];
+  }
+
+  if (chkSort.checked) {
+    items.sort(function(a, b) { return a.localeCompare(b, undefined, { numeric: true }); });
+  }
+
+  if (chkQuote.checked) {
+    items = items.map(function(v) { return "'" + v + "'"; });
+  }
+
+  var mode = document.querySelector("input[name=\"outputMode\"]:checked").value;
+
+  if (mode === "multi") {
+    outputArea.value = items.join(",\n");
+  } else {
+    outputArea.value = items.join(", ");
+  }
+}
+
+function copyResult() {
+  var text = outputArea.value;
+  if (!text) return;
+
+  navigator.clipboard.writeText(text).then(function() {
+    toast.classList.add("show");
+    setTimeout(function() { toast.classList.remove("show"); }, 2000);
+    outputArea.select();
+  }).catch(function() {
+    outputArea.select();
+    document.execCommand("copy");
+    toast.classList.add("show");
+    setTimeout(function() { toast.classList.remove("show"); }, 2000);
+  });
+}
+
+function clearAll() {
+  inputArea.value = "";
+  outputArea.value = "";
+  countInfo.innerHTML = "共 <span>0</span> 项";
+}
+
+inputArea.addEventListener("input", format);
+chkQuote.addEventListener("change", format);
+chkDedup.addEventListener("change", format);
+chkSort.addEventListener("change", format);
+var radios = document.querySelectorAll("input[name=\"outputMode\"]");
+for (var i = 0; i < radios.length; i++) {
+  radios[i].addEventListener("change", format);
+}
+copyBtn.addEventListener("click", copyResult);
+clearBtn.addEventListener("click", clearAll);
+
+document.addEventListener("keydown", function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+    copyResult();
+  }
+});
+</script>
+</body>
+</html>
