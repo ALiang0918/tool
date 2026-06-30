@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Java 字段对比器</title>
+<title>工具箱</title>
 <style>
   :root {
     --bg: #f5f5f5;
@@ -11,16 +11,6 @@
     --text: #1a1a1a;
     --text-secondary: #666;
     --border: #ddd;
-    --green-bg: #e8f5e9;
-    --green-border: #4caf50;
-    --yellow-bg: #fff8e1;
-    --yellow-border: #ff9800;
-    --red-bg: #ffebee;
-    --red-border: #f44336;
-    --gray-bg: #fafafa;
-    --gray-text: #bbb;
-    --header-bg: #1a237e;
-    --header-text: #fff;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -29,406 +19,48 @@
       --text: #e0e0e0;
       --text-secondary: #999;
       --border: #333;
-      --green-bg: #1b3d1b;
-      --green-border: #4caf50;
-      --yellow-bg: #3d2e1b;
-      --yellow-border: #ff9800;
-      --red-bg: #3d1b1b;
-      --red-border: #f44336;
-      --gray-bg: #1a1a1a;
-      --gray-text: #555;
-      --header-bg: #0d1b6b;
-      --header-text: #e0e0e0;
     }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-         background: var(--bg); color: var(--text); min-height: 100vh; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+         background: var(--bg); color: var(--text); min-height: 100vh;
+         display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
-  header { background: var(--header-bg); color: var(--header-text); padding: 16px 24px;
-            display: flex; justify-content: space-between; align-items: center; }
-  header h1 { font-size: 20px; font-weight: 600; letter-spacing: 0.5px; }
-  header span { font-size: 13px; opacity: 0.8; }
+  .container { max-width: 600px; width: 100%; padding: 24px; text-align: center; }
 
-  .container { max-width: 1400px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  .subtitle { font-size: 14px; color: var(--text-secondary); margin-bottom: 40px; }
 
-  .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
-  .input-panel { background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border);
-                  overflow: hidden; display: flex; flex-direction: column; }
-  .input-panel .panel-header { display: flex; align-items: center; gap: 8px; padding: 10px 14px;
-                                background: var(--gray-bg); border-bottom: 1px solid var(--border); }
-  .input-panel .panel-header .label-input { flex: 1; border: none; background: transparent;
-                                             font-size: 14px; font-weight: 600;
-                                             color: var(--text); outline: none; }
-  .input-panel .panel-header .file-btn { font-size: 12px; padding: 4px 10px; cursor: pointer;
-                                          border: 1px solid var(--border); border-radius: 4px;
-                                          background: var(--card-bg); color: var(--text); }
-  .input-panel .panel-header .file-btn:hover { background: var(--green-bg); }
-  .input-panel .panel-header .status { font-size: 11px; color: var(--text-secondary); }
-  .input-panel textarea { width: 100%; min-height: 200px; padding: 12px; border: none;
-                           resize: vertical; font-family: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
-                           font-size: 13px; line-height: 1.5; background: var(--card-bg);
-                           color: var(--text); outline: none; tab-size: 2; }
-  .input-panel textarea::placeholder { color: var(--text-secondary); }
+  .cards { display: flex; flex-direction: column; gap: 16px; }
+  .card { display: block; background: var(--card-bg); border: 1px solid var(--border);
+           border-radius: 12px; padding: 24px; text-decoration: none; color: var(--text);
+           transition: all .15s; text-align: left; }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+  .card:active { transform: translateY(0); }
+  .card .icon { font-size: 28px; margin-bottom: 8px; }
+  .card .name { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .card .desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
 
-  .controls { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; }
-  .controls button { padding: 8px 24px; border: none; border-radius: 6px; font-size: 14px;
-                      font-weight: 500; cursor: pointer; transition: all .15s; }
-  .btn-compare { background: var(--header-bg); color: #fff; }
-  .btn-compare:hover { opacity: 0.9; }
-  .btn-clear { background: var(--card-bg); color: var(--text); border: 1px solid var(--border); }
-  .btn-clear:hover { background: var(--red-bg); }
-
-  .result-section { display: none; }
-  .result-section.active { display: block; }
-
-  .result-summary { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
-  .summary-item { flex: 1; min-width: 120px; padding: 12px 16px; border-radius: 8px;
-                   border: 1px solid var(--border); background: var(--card-bg); text-align: center; }
-  .summary-item .num { font-size: 24px; font-weight: 700; }
-  .summary-item .label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
-  .summary-item.green .num { color: var(--green-border); }
-  .summary-item.yellow .num { color: var(--yellow-border); }
-  .summary-item.red .num { color: var(--red-border); }
-
-  .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .result-panel { background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border);
-                   overflow: hidden; }
-  .result-panel .rp-header { padding: 10px 14px; font-weight: 600; font-size: 14px;
-                              border-bottom: 1px solid var(--border); background: var(--gray-bg); }
-
-  .field-list { list-style: none; }
-  .field-item { display: flex; align-items: center; gap: 8px; padding: 8px 14px;
-                 border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', 'Consolas', monospace;
-                 font-size: 13px; line-height: 1.5; min-height: 36px; }
-  .field-item:last-child { border-bottom: none; }
-  .field-item .icon { flex-shrink: 0; font-size: 14px; width: 20px; text-align: center; }
-  .field-item .modifiers { color: #7c4dff; }
-  .field-item .type-name { color: #1565c0; }
-  .field-item .field-name { font-weight: 600; }
-  .field-item.common { background: var(--green-bg); border-left: 3px solid var(--green-border); }
-  .field-item.conflict { background: var(--yellow-bg); border-left: 3px solid var(--yellow-border); }
-  .field-item.only-a, .field-item.only-b { background: var(--red-bg); border-left: 3px solid var(--red-border); }
-  .field-item.empty-placeholder { color: var(--gray-text); background: var(--gray-bg);
-                                   border-left: 3px solid transparent; justify-content: center; }
-  @media (prefers-color-scheme: dark) {
-    .field-item .modifiers { color: #b388ff; }
-    .field-item .type-name { color: #64b5f6; }
-  }
-
-  .empty-state { text-align: center; padding: 40px 16px; color: var(--text-secondary); }
-  .empty-state .big-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
-  .empty-state p { font-size: 14px; line-height: 1.6; }
-
-  @media (max-width: 768px) {
-    .input-row, .result-grid { grid-template-columns: 1fr; }
-    header { flex-direction: column; gap: 4px; text-align: center; }
-  }
+  footer { margin-top: 40px; font-size: 12px; color: var(--text-secondary); }
 </style>
 </head>
 <body>
-
-<header>
-  <h1>Java 字段对比器</h1>
-  <span>粘贴或选择 .java 文件，快速对比两个对象的属性差异</span>
-</header>
-
 <div class="container">
-  <div class="input-row">
-    <div class="input-panel">
-      <div class="panel-header">
-        <input class="label-input" id="labelA" value="Object A" placeholder="对象 A 名称">
-        <span class="status" id="statusA">0 个字段</span>
-        <button class="file-btn" id="fileBtnA">📁 选择文件</button>
-        <input type="file" accept=".java" id="fileInputA" style="display:none">
-      </div>
-      <textarea id="codeA" placeholder="在此粘贴 Java 源码...&#10;&#10;public class User {&#10;    private String name;&#10;    private int age;&#10;    ...&#10;}"></textarea>
-    </div>
-    <div class="input-panel">
-      <div class="panel-header">
-        <input class="label-input" id="labelB" value="Object B" placeholder="对象 B 名称">
-        <span class="status" id="statusB">0 个字段</span>
-        <button class="file-btn" id="fileBtnB">📁 选择文件</button>
-        <input type="file" accept=".java" id="fileInputB" style="display:none">
-      </div>
-      <textarea id="codeB" placeholder="在此粘贴 Java 源码...&#10;&#10;public class UserDto {&#10;    private String name;&#10;    private Integer age;&#10;    ...&#10;}"></textarea>
-    </div>
+  <h1>🔧 工具箱</h1>
+  <p class="subtitle">开发中常用的几个小工具</p>
+  <div class="cards">
+    <a class="card" href="java-compare.html">
+      <div class="icon">☕</div>
+      <div class="name">Java 字段对比器</div>
+      <div class="desc">对比两个 Java 对象的属性差异，快速定位共有字段、类型冲突、独有字段</div>
+    </a>
+    <a class="card" href="sql-formatter.html">
+      <div class="icon">🗄️</div>
+      <div class="name">SQL IN 条件格式化</div>
+      <div class="desc">粘贴多行数据，一键生成逗号分隔的 IN 条件，支持引号、去重、排序</div>
+    </a>
   </div>
-
-  <div class="controls">
-    <button class="btn-compare" id="compareBtn">开始对比</button>
-    <button class="btn-clear" id="clearBtn">清空</button>
-  </div>
-
-  <div class="result-section" id="resultSection">
-    <div class="result-summary" id="summary"></div>
-    <div class="result-grid">
-      <div class="result-panel">
-        <div class="rp-header" id="resultHeaderA">Object A 的字段</div>
-        <ul class="field-list" id="fieldListA"></ul>
-      </div>
-      <div class="result-panel">
-        <div class="rp-header" id="resultHeaderB">Object B 的字段</div>
-        <ul class="field-list" id="fieldListB"></ul>
-      </div>
-    </div>
-  </div>
-
-  <div id="emptyState" class="empty-state">
-    <div class="big-icon">📋</div>
-    <p>在两侧粘贴 Java 代码或选择 .java 文件<br>点击「开始对比」查看字段差异</p>
-  </div>
+  <footer>GitHub Pages · 纯前端 · 零依赖</footer>
 </div>
-
-<script>
-function removeComments(code) {
-  return code.replace(/\/\/.*/g, '')
-             .replace(/\/\*[\s\S]*?\*\//g, '')
-             .replace(/@\w+(?:\([^)]*\))?/g, '');
-}
-
-function parseFields(code) {
-  const cleaned = removeComments(code);
-  const fields = [];
-  const regex = /((?:\b(?:private|public|protected|static|final|transient|volatile|strictfp)\s+)*)\b([\w.]+(?:<[^>]+>)?(?:\[\])*(?:\.\.\.)?)\s+(\w+)\s*(?:=\s*[^;]*)?\s*;/gm;
-  let match;
-  while ((match = regex.exec(cleaned)) !== null) {
-    const modifiers = match[1].trim();
-    const type = match[2].trim();
-    const name = match[3].trim();
-    if (name === 'serialVersionUID') continue;
-    fields.push({ modifiers, type, name });
-  }
-  return fields;
-}
-
-function escapeHtml(text) {
-  const d = document.createElement('div');
-  d.textContent = text;
-  return d.innerHTML;
-}
-
-function compareFields(fieldsA, fieldsB) {
-  const mapA = Object.fromEntries(fieldsA.map(f => [f.name, f]));
-  const mapB = Object.fromEntries(fieldsB.map(f => [f.name, f]));
-
-  const results = [];
-  const matchedA = new Set();
-  const matchedB = new Set();
-
-  for (const [name, fa] of Object.entries(mapA)) {
-    const fb = mapB[name];
-    if (fb) {
-      results.push({
-        name, typeA: fa.type, typeB: fb.type,
-        modifiersA: fa.modifiers, modifiersB: fb.modifiers,
-        status: fa.type === fb.type ? 'common' : 'conflict'
-      });
-      matchedA.add(name);
-      matchedB.add(name);
-    }
-  }
-
-  for (const fa of fieldsA) {
-    if (!matchedA.has(fa.name)) {
-      results.push({
-        name: fa.name, typeA: fa.type, typeB: null,
-        modifiersA: fa.modifiers, modifiersB: null,
-        status: 'only-a'
-      });
-    }
-  }
-
-  for (const fb of fieldsB) {
-    if (!matchedB.has(fb.name)) {
-      results.push({
-        name: fb.name, typeA: null, typeB: fb.type,
-        modifiersA: null, modifiersB: fb.modifiers,
-        status: 'only-b'
-      });
-    }
-  }
-
-  return results;
-}
-
-function sortResults(results) {
-  const order = { common: 0, conflict: 1, 'only-a': 2, 'only-b': 3 };
-  return results.sort((a, b) => order[a.status] - order[b.status]);
-}
-
-function renderComparison(fieldsA, fieldsB, labelA, labelB) {
-  const comparison = compareFields(fieldsA, fieldsB);
-  const sorted = sortResults(comparison);
-
-  const listA = document.getElementById('fieldListA');
-  const listB = document.getElementById('fieldListB');
-  const headerA = document.getElementById('resultHeaderA');
-  const headerB = document.getElementById('resultHeaderB');
-  const summary = document.getElementById('summary');
-
-  headerA.textContent = labelA + ' 的字段 (' + fieldsA.length + ')';
-  headerB.textContent = labelB + ' 的字段 (' + fieldsB.length + ')';
-
-  listA.innerHTML = '';
-  listB.innerHTML = '';
-
-  let commonCount = 0, conflictCount = 0, onlyACount = 0, onlyBCount = 0;
-
-  for (const r of sorted) {
-    const iconMap = { common: '✅', conflict: '⚠️', 'only-a': '❌', 'only-b': '❌' };
-    const icon = iconMap[r.status] || '';
-
-    let leftHtml, rightHtml;
-
-    if (r.status === 'only-b') {
-      leftHtml = '<span style="color:var(--gray-text)">—</span>';
-    } else {
-      let s = '';
-      if (r.modifiersA) s += '<span class="modifiers">' + escapeHtml(r.modifiersA) + '</span> ';
-      if (r.typeA) s += '<span class="type-name">' + escapeHtml(r.typeA) + '</span> ';
-      s += '<span class="field-name">' + escapeHtml(r.name) + '</span>';
-      leftHtml = s;
-    }
-
-    if (r.status === 'only-a') {
-      rightHtml = '<span style="color:var(--gray-text)">—</span>';
-    } else {
-      let s = '';
-      if (r.modifiersB) s += '<span class="modifiers">' + escapeHtml(r.modifiersB) + '</span> ';
-      if (r.typeB) s += '<span class="type-name">' + escapeHtml(r.typeB) + '</span> ';
-      s += '<span class="field-name">' + escapeHtml(r.name) + '</span>';
-      rightHtml = s;
-    }
-
-    if (r.status !== 'only-b') {
-      const liA = document.createElement('li');
-      liA.className = 'field-item ' + r.status;
-      liA.innerHTML = '<span class="icon">' + icon + '</span>' + leftHtml;
-      listA.appendChild(liA);
-      if (r.status === 'common') commonCount++;
-      else if (r.status === 'conflict') conflictCount++;
-      else if (r.status === 'only-a') onlyACount++;
-    }
-
-    if (r.status !== 'only-a') {
-      const liB = document.createElement('li');
-      liB.className = 'field-item ' + r.status;
-      liB.innerHTML = '<span class="icon">' + icon + '</span>' + rightHtml;
-      listB.appendChild(liB);
-      if (r.status === 'only-b') onlyBCount++;
-    }
-
-    if (r.status === 'only-a') {
-      const emptyLi = document.createElement('li');
-      emptyLi.className = 'field-item empty-placeholder';
-      emptyLi.innerHTML = '<span style="color:var(--gray-text)">—</span>';
-      listB.appendChild(emptyLi);
-    }
-    if (r.status === 'only-b') {
-      const emptyLi = document.createElement('li');
-      emptyLi.className = 'field-item empty-placeholder';
-      emptyLi.innerHTML = '<span style="color:var(--gray-text)">—</span>';
-      listA.appendChild(emptyLi);
-    }
-  }
-
-  summary.innerHTML = ''
-    + '<div class="summary-item green">'
-    + '<div class="num">' + commonCount + '</div>'
-    + '<div class="label">共有属性</div>'
-    + '</div>'
-    + '<div class="summary-item yellow">'
-    + '<div class="num">' + conflictCount + '</div>'
-    + '<div class="label">同名异型</div>'
-    + '</div>'
-    + '<div class="summary-item red">'
-    + '<div class="num">' + onlyACount + '</div>'
-    + '<div class="label">仅 ' + escapeHtml(labelA) + ' 有</div>'
-    + '</div>'
-    + '<div class="summary-item red">'
-    + '<div class="num">' + onlyBCount + '</div>'
-    + '<div class="label">仅 ' + escapeHtml(labelB) + ' 有</div>'
-    + '</div>';
-
-  document.getElementById('resultSection').classList.add('active');
-  document.getElementById('emptyState').style.display = 'none';
-}
-
-function doCompare() {
-  const codeA = document.getElementById('codeA').value;
-  const codeB = document.getElementById('codeB').value;
-  const labelA = document.getElementById('labelA').value || 'Object A';
-  const labelB = document.getElementById('labelB').value || 'Object B';
-
-  if (!codeA.trim() || !codeB.trim()) {
-    alert('请先在两侧粘贴 Java 代码或选择文件');
-    return;
-  }
-
-  const fieldsA = parseFields(codeA);
-  const fieldsB = parseFields(codeB);
-
-  document.getElementById('statusA').textContent = fieldsA.length + ' 个字段';
-  document.getElementById('statusB').textContent = fieldsB.length + ' 个字段';
-
-  renderComparison(fieldsA, fieldsB, labelA, labelB);
-}
-
-function clearAll() {
-  document.getElementById('codeA').value = '';
-  document.getElementById('codeB').value = '';
-  document.getElementById('labelA').value = 'Object A';
-  document.getElementById('labelB').value = 'Object B';
-  document.getElementById('statusA').textContent = '0 个字段';
-  document.getElementById('statusB').textContent = '0 个字段';
-  document.getElementById('fieldListA').innerHTML = '';
-  document.getElementById('fieldListB').innerHTML = '';
-  document.getElementById('resultSection').classList.remove('active');
-  document.getElementById('emptyState').style.display = 'block';
-}
-
-function updateStatus() {
-  const codeA = document.getElementById('codeA').value;
-  const codeB = document.getElementById('codeB').value;
-  const fieldsA = parseFields(codeA);
-  const fieldsB = parseFields(codeB);
-  document.getElementById('statusA').textContent = fieldsA.length + ' 个字段';
-  document.getElementById('statusB').textContent = fieldsB.length + ' 个字段';
-}
-
-function setupFileInput(btnId, inputId, textareaId) {
-  document.getElementById(btnId).addEventListener('click', function() {
-    document.getElementById(inputId).click();
-  });
-  document.getElementById(inputId).addEventListener('change', function(e) {
-    var file = e.target.files[0];
-    if (!file) return;
-    var reader = new FileReader();
-    reader.onload = function(ev) {
-      document.getElementById(textareaId).value = ev.target.result;
-      updateStatus();
-    };
-    reader.readAsText(file);
-  });
-}
-
-setupFileInput('fileBtnA', 'fileInputA', 'codeA');
-setupFileInput('fileBtnB', 'fileInputB', 'codeB');
-
-document.getElementById('compareBtn').addEventListener('click', doCompare);
-document.getElementById('clearBtn').addEventListener('click', clearAll);
-
-['codeA', 'codeB'].forEach(function(id) {
-  document.getElementById(id).addEventListener('input', updateStatus);
-  document.getElementById(id).addEventListener('paste', function() { setTimeout(updateStatus, 50); });
-});
-
-document.addEventListener('keydown', function(e) {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-    doCompare();
-  }
-});
-</script>
 </body>
 </html>
